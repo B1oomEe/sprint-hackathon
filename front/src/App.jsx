@@ -80,7 +80,7 @@ function App() {
         setJsonInput(text);
         setError("");
       } catch (err) {
-        setError("Не удалось прочитать файл");
+        setError("Не удалось прочитать файл, ошибка");
       }
     },
     [setJsonInput]
