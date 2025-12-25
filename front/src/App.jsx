@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import Snowfall from "react-snowfall";
 import "./App.css";
 
 const API_BASE =
@@ -22,6 +23,25 @@ const initialDistricts = [
   { id: "admir", area: "50.0", k: "1.21", stations: "1,2,2,3" },
 ];
 
+const sampleJson = JSON.stringify(
+  {
+    pi: 3.141592653589793,
+    stationTypes: [
+      { id: 1, coverageArea: 10.0, handoverMin: 12, handoverMax: 18 },
+      { id: 2, coverageArea: 15.0, handoverMin: 10, handoverMax: 16 },
+      { id: 3, coverageArea: 20.0, handoverMin: 11, handoverMax: 17 },
+    ],
+    handovers: [
+      { stationTypeId: 1, value: 14 },
+      { stationTypeId: 2, value: 12 },
+      { stationTypeId: 3, value: 15 },
+    ],
+    districts: [{ id: "admir", area: 50.0, k: 1.21, stations: [1, 2, 2, 3] }],
+  },
+  null,
+  2
+);
+
 function toNumber(value, fallback = 0) {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
@@ -42,6 +62,9 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [theme, setTheme] = useState("theme-guideline");
+  const [inputMode, setInputMode] = useState("form");
+  const [jsonInput, setJsonInput] = useState(sampleJson);
 
   const totalStations = useMemo(
     () =>
@@ -97,31 +120,38 @@ function App() {
     ]);
   };
 
+  const buildPayloadFromForm = () => ({
+    pi: toNumber(pi, Math.PI),
+    stationTypes: stationTypes.map((st) => ({
+      id: toNumber(st.id),
+      coverageArea: toNumber(st.coverageArea),
+      handoverMin: toNumber(st.handoverMin),
+      handoverMax: toNumber(st.handoverMax),
+    })),
+    handovers: handovers.map((h) => ({
+      stationTypeId: toNumber(h.stationTypeId),
+      value: toNumber(h.value),
+    })),
+    districts: districts.map((d) => ({
+      id: d.id,
+      area: toNumber(d.area),
+      k: toNumber(d.k),
+      stations: parseStations(d.stations),
+    })),
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setResult(null);
     setLoading(true);
+    let payload;
     try {
-      const payload = {
-        pi: toNumber(pi, Math.PI),
-        stationTypes: stationTypes.map((st) => ({
-          id: toNumber(st.id),
-          coverageArea: toNumber(st.coverageArea),
-          handoverMin: toNumber(st.handoverMin),
-          handoverMax: toNumber(st.handoverMax),
-        })),
-        handovers: handovers.map((h) => ({
-          stationTypeId: toNumber(h.stationTypeId),
-          value: toNumber(h.value),
-        })),
-        districts: districts.map((d) => ({
-          id: d.id,
-          area: toNumber(d.area),
-          k: toNumber(d.k),
-          stations: parseStations(d.stations),
-        })),
-      };
+      if (inputMode === "json") {
+        payload = JSON.parse(jsonInput);
+      } else {
+        payload = buildPayloadFromForm();
+      }
 
       const response = await fetch(`${API_BASE}/api/v1/calculate`, {
         method: "POST",
@@ -144,8 +174,24 @@ function App() {
       setLoading(false);
     }
   };
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "theme-modern" ? "theme-guideline" : "theme-modern"));
+  };
+
   return (
-    <div className="page">
+    <div className={`page ${theme}`}>
+      {theme === "theme-modern" && (
+        <Snowfall
+          snowflakeCount={80}
+          style={{
+            position: "fixed",
+            width: "100vw",
+            height: "100vh",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+      )}
       <div className="backdrop" />
       <header className="hero">
         <div className="logo-block">
@@ -171,165 +217,209 @@ function App() {
             Добавить тип станции
           </button>
         </div>
+        <div className="mode-switch">
+          <button
+            type="button"
+            className={`chip ${inputMode === "form" ? "active" : ""}`}
+            onClick={() => setInputMode("form")}
+          >
+            Формы
+          </button>
+          <button
+            type="button"
+            className={`chip ${inputMode === "json" ? "active" : ""}`}
+            onClick={() => setInputMode("json")}
+          >
+            JSON
+          </button>
+        </div>
+        <div className="theme-switch">
+          <button
+            type="button"
+            className="toggle"
+            onClick={toggleTheme}
+            aria-label="Переключить тему"
+          >
+            <span className="toggle-track">
+              <span className={`toggle-thumb ${theme === "theme-guideline" ? "on" : ""}`} />
+            </span>
+            <span className="toggle-label">Тема</span>
+          </button>
+        </div>
       </header>
 
       <form className="panel" onSubmit={handleSubmit}>
-        <div className="grid">
-          <section className="card">
-            <div className="card-header">
-              <h2>Константы</h2>
-            </div>
-            <label className="field">
-              <span>π</span>
-              <input
-                type="number"
-                step="any"
-                value={pi}
-                onChange={(e) => setPi(e.target.value)}
-              />
-            </label>
-          </section>
-
-          <section className="card">
-            <div className="card-header">
-              <h2>Типы станций</h2>
-              <button type="button" onClick={addStationType}>
-                +
-              </button>
-            </div>
-            {stationTypes.map((st, idx) => (
-              <div className="card-row" key={`st-${idx}`}>
-                <label className="field">
-                  <span>ID</span>
-                  <input
-                    type="number"
-                    value={st.id}
-                    onChange={(e) =>
-                      handleStationTypeChange(idx, "id", e.target.value)
-                    }
-                  />
-                </label>
-                <label className="field">
-                  <span>Площадь покрытия (S)</span>
-                  <input
-                    type="number"
-                    step="any"
-                    value={st.coverageArea}
-                    onChange={(e) =>
-                      handleStationTypeChange(idx, "coverageArea", e.target.value)
-                    }
-                  />
-                </label>
-                <label className="field">
-                  <span>H min</span>
-                  <input
-                    type="number"
-                    value={st.handoverMin}
-                    onChange={(e) =>
-                      handleStationTypeChange(idx, "handoverMin", e.target.value)
-                    }
-                  />
-                </label>
-                <label className="field">
-                  <span>H max</span>
-                  <input
-                    type="number"
-                    value={st.handoverMax}
-                    onChange={(e) =>
-                      handleStationTypeChange(idx, "handoverMax", e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-            ))}
-          </section>
-
-          <section className="card">
-            <div className="card-header">
-              <h2>Handover</h2>
-              <button type="button" onClick={addHandover}>
-                +
-              </button>
-            </div>
-            {handovers.map((h, idx) => (
-              <div className="card-row" key={`ho-${idx}`}>
-                <label className="field">
-                  <span>ID типа станции</span>
-                  <input
-                    type="number"
-                    value={h.stationTypeId}
-                    onChange={(e) =>
-                      handleHandoverChange(idx, "stationTypeId", e.target.value)
-                    }
-                  />
-                </label>
-                <label className="field">
-                  <span>Значение H</span>
-                  <input
-                    type="number"
-                    value={h.value}
-                    onChange={(e) =>
-                      handleHandoverChange(idx, "value", e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-            ))}
-          </section>
-
+        {inputMode === "json" ? (
           <section className="card span2">
             <div className="card-header">
-              <h2>Районы</h2>
-              <button type="button" onClick={addDistrict}>
-                +
-              </button>
+              <h2>JSON запрос</h2>
             </div>
-            {districts.map((d, idx) => (
-              <div className="card-row district-row" key={`d-${idx}`}>
-                <label className="field">
-                  <span>ID</span>
-                  <input
-                    value={d.id}
-                    onChange={(e) =>
-                      handleDistrictChange(idx, "id", e.target.value)
-                    }
-                  />
-                </label>
-                <label className="field">
-                  <span>Площадь района (s)</span>
-                  <input
-                    type="number"
-                    step="any"
-                    value={d.area}
-                    onChange={(e) =>
-                      handleDistrictChange(idx, "area", e.target.value)
-                    }
-                  />
-                </label>
-                <label className="field">
-                  <span>Коэффициент застройки (K)</span>
-                  <input
-                    type="number"
-                    step="any"
-                    value={d.k}
-                    onChange={(e) =>
-                      handleDistrictChange(idx, "k", e.target.value)
-                    }
-                  />
-                </label>
-                <label className="field">
-                  <span>ID станций (через запятую)</span>
-                  <input
-                    value={d.stations}
-                    onChange={(e) =>
-                      handleDistrictChange(idx, "stations", e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-            ))}
+            <textarea
+              className="json-area"
+              value={jsonInput}
+              onChange={(e) => setJsonInput(e.target.value)}
+              spellCheck={false}
+            />
+            <p className="muted">Формат как в README (POST /api/v1/calculate).</p>
           </section>
-        </div>
+        ) : (
+          <div className="grid">
+            <section className="card">
+              <div className="card-header">
+                <h2>Константы</h2>
+              </div>
+              <label className="field">
+                <span>π</span>
+                <input
+                  type="number"
+                  step="any"
+                  value={pi}
+                  onChange={(e) => setPi(e.target.value)}
+                />
+              </label>
+            </section>
+
+            <section className="card">
+              <div className="card-header">
+                <h2>Типы станций</h2>
+                <button type="button" onClick={addStationType}>
+                  +
+                </button>
+              </div>
+              {stationTypes.map((st, idx) => (
+                <div className="card-row" key={`st-${idx}`}>
+                  <label className="field">
+                    <span>ID</span>
+                    <input
+                      type="number"
+                      value={st.id}
+                      onChange={(e) =>
+                        handleStationTypeChange(idx, "id", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Площадь покрытия (S)</span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={st.coverageArea}
+                      onChange={(e) =>
+                        handleStationTypeChange(idx, "coverageArea", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>H min</span>
+                    <input
+                      type="number"
+                      value={st.handoverMin}
+                      onChange={(e) =>
+                        handleStationTypeChange(idx, "handoverMin", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>H max</span>
+                    <input
+                      type="number"
+                      value={st.handoverMax}
+                      onChange={(e) =>
+                        handleStationTypeChange(idx, "handoverMax", e.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+              ))}
+            </section>
+
+            <section className="card">
+              <div className="card-header">
+                <h2>Handover</h2>
+                <button type="button" onClick={addHandover}>
+                  +
+                </button>
+              </div>
+              {handovers.map((h, idx) => (
+                <div className="card-row" key={`ho-${idx}`}>
+                  <label className="field">
+                    <span>ID типа станции</span>
+                    <input
+                      type="number"
+                      value={h.stationTypeId}
+                      onChange={(e) =>
+                        handleHandoverChange(idx, "stationTypeId", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Значение H</span>
+                    <input
+                      type="number"
+                      value={h.value}
+                      onChange={(e) =>
+                        handleHandoverChange(idx, "value", e.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+              ))}
+            </section>
+
+            <section className="card span2">
+              <div className="card-header">
+                <h2>Районы</h2>
+                <button type="button" onClick={addDistrict}>
+                  +
+                </button>
+              </div>
+              {districts.map((d, idx) => (
+                <div className="card-row district-row" key={`d-${idx}`}>
+                  <label className="field">
+                    <span>ID</span>
+                    <input
+                      value={d.id}
+                      onChange={(e) =>
+                        handleDistrictChange(idx, "id", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Площадь района (s)</span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={d.area}
+                      onChange={(e) =>
+                        handleDistrictChange(idx, "area", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Коэффициент застройки (K)</span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={d.k}
+                      onChange={(e) =>
+                        handleDistrictChange(idx, "k", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>ID станций (через запятую)</span>
+                    <input
+                      value={d.stations}
+                      onChange={(e) =>
+                        handleDistrictChange(idx, "stations", e.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+              ))}
+            </section>
+          </div>
+        )}
 
         <div className="actions">
           <button type="submit" className="primary" disabled={loading}>
