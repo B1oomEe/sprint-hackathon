@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import Snowfall from "react-snowfall";
 import "./App.css";
+import { useCallback } from "react";
 
 const API_BASE =
   import.meta.env.VITE_BACKEND_URL ||
@@ -65,6 +66,25 @@ function App() {
   const [theme, setTheme] = useState("theme-guideline");
   const [inputMode, setInputMode] = useState("form");
   const [jsonInput, setJsonInput] = useState(sampleJson);
+  const [dragOverJson, setDragOverJson] = useState(false);
+
+  const handleJsonFile = useCallback(
+    async (file) => {
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith(".json")) {
+        setError("Поддерживаются только .json файлы");
+        return;
+      }
+      try {
+        const text = await file.text();
+        setJsonInput(text);
+        setError("");
+      } catch (err) {
+        setError("Не удалось прочитать файл");
+      }
+    },
+    [setJsonInput]
+  );
 
   const totalStations = useMemo(
     () =>
@@ -250,17 +270,43 @@ function App() {
 
       <form className="panel" onSubmit={handleSubmit}>
         {inputMode === "json" ? (
-          <section className="card span2">
+          <section
+            className="card span2"
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOverJson(true);
+            }}
+            onDragLeave={() => setDragOverJson(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverJson(false);
+              const file = e.dataTransfer.files?.[0];
+              handleJsonFile(file);
+            }}
+            onDragEnter={() => setDragOverJson(true)}
+          >
             <div className="card-header">
               <h2>JSON запрос</h2>
             </div>
+            {dragOverJson && <div className="drop-overlay">+</div>}
             <textarea
               className="json-area"
               value={jsonInput}
               onChange={(e) => setJsonInput(e.target.value)}
               spellCheck={false}
             />
-            <p className="muted">Формат как в README (POST /api/v1/calculate).</p>
+            <div className="json-actions">
+              <label className="ghost file-btn">
+                Загрузить .json
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={(e) => handleJsonFile(e.target.files?.[0])}
+                  hidden
+                />
+              </label>
+            </div>
+            <p className="muted">Формат как в README (POST /api/v1/calculate). Можно перетащить .json файл.</p>
           </section>
         ) : (
           <div className="grid">

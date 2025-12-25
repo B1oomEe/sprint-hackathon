@@ -381,6 +381,47 @@ h1 {
   margin-top: 8px;
 }
 
+.json-actions {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+
+.file-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 8px;
+  border: 2px dashed var(--accent);
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  font-size: 48px;
+  font-weight: 700;
+  background: rgba(74, 103, 247, 0.08);
+  pointer-events: none;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.98);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.98);
+    opacity: 0.8;
+  }
+}
+
 .actions {
   margin-top: 16px;
   display: flex;
