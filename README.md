@@ -105,3 +105,5 @@ npm run dev
 VITE_API_BASE=http://localhost:8000
 ```
 После запуска откройте dev-сервер Vite (по умолчанию http://localhost:5173) и заполните формы типов станций, handover и районов, затем нажмите «Выполнить расчет».
+
+Для настройки адреса бэкенда используйте `front/.env` (пример — `front/.env.example`): задайте `VITE_BACKEND_URL` или `VITE_API_BASE`.

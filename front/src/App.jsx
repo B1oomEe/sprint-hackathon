@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import "./App.css";
 
-const API_BASE = "http://localhost:8000"// import.meta.env.VITE_API_BASE || "";
+const API_BASE =
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_BASE ||
+  "";
 
 const initialStationTypes = [
   { id: 1, coverageArea: "10.0", handoverMin: "12", handoverMax: "18" },
@@ -145,23 +148,26 @@ function App() {
     <div className="page">
       <div className="backdrop" />
       <header className="hero">
-        <div>
-          <p className="eyebrow">FastAPI · Handover · L/C/N</p>
-          <h1>Расчет базовых станций</h1>
-          <p className="lede">
-            Введите параметры типов станций, handover и районов, чтобы получить
-            расчет количества базовых станций через API `/api/v1/calculate`.
-          </p>
-          <div className="meta">
-            <span>Станций в запросе: {totalStations}</span>
-            <span>API base: {API_BASE || "текущий хост"}</span>
+        <div className="logo-block">
+          <img src="/hat-xmas-svgrepo-com.svg" alt="Логотип" className="logo" />
+          <div>
+            <p className="eyebrow">FastAPI · Handover · L/C/N</p>
+            <h1>Расчет базовых станций</h1>
+            <p className="lede">
+              Введите параметры типов станций, handover и районов, чтобы получить
+              расчет количества базовых станций через API `/api/v1/calculate`.
+            </p>
+            <div className="meta">
+              <span>Станций в запросе: {totalStations}</span>
+              <span>API base: {API_BASE || "текущий хост"}</span>
+            </div>
           </div>
         </div>
         <div className="cta">
-          <button className="ghost" onClick={() => addDistrict()}>
+          <button className="ghost" type="button" onClick={() => addDistrict()}>
             Добавить район
           </button>
-          <button className="ghost" onClick={() => addStationType()}>
+          <button className="ghost" type="button" onClick={() => addStationType()}>
             Добавить тип станции
           </button>
         </div>
